@@ -1,0 +1,38 @@
+# Tasks
+- Get the USB camera
+- Capture the image from camera opencv
+- get prediction from YOLO
+- Test if the camera is available parallely in zoom
+- Assemble the Gimble
+
+# Flow
+- Load YOLO Model
+## Phase 1
+- Calibration of camera
+    - Capture the image from camera
+    - Pass image to YOLO Model - Get the rectangle of person.
+    - If person is found, 
+        Move the camera a little and observe the change in the position
+        Move the camera in the proportion of the change
+        Keep record of the proportion - maximum angle required to cover the full image - camera's FOV - may be we can have a separate script
+    - If the person is not found,
+        Wait for sometime - announce
+        Move to right +90
+- Person Tracker
+    - Capture the image from camera
+    - Pass image to YOLO Model - Get the rectangle of person.
+    - Get the object tracker on
+    - If the center is beyond 10% distance from the center, move the camera to LEft, RIGHT, TOP OR BOTTOM
+
+
+import cv2
+
+camera = cv2.VideoCapture(1)
+i = 0
+while i < 10:
+    input('Press Enter to capture')
+    return_value, image = camera.read()
+    cv2.imwrite('opencv'+str(i)+'.png', image)
+    i += 1
+
+del(camera)
