@@ -10,7 +10,9 @@ Since github does not allow the huge files, we have put the yolo model in Google
 Download and uncompress the model file such that the yolov3.weights file is available in yolo-object-detection/yolo-coco/
 
 ## Run
-Start with: python main.py
+Start with:
+  cd yolo-object-detection
+  python main.py
 
 # Requirements
 You will have to set up - opencv, pandas, numpy etc.
