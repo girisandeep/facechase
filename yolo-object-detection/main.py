@@ -6,6 +6,8 @@ import os
 import math
 import serial
 
+# 5v 5A SMPS
+
 CAMERA_INPUT = 1
 DEFAULT_CONFIDENCE = 0.5
 DEFAULT_THRESOLD = 0.3
@@ -25,7 +27,7 @@ def load_yolo():
     # labels = open(labelsPath).read().strip().split("\n")
     return (net, ln)
 
-def get_person_centroild(image, net, ln):
+def get_biggest_person_bb(image, net, ln):
     (H, W) = image.shape[:2]
 
     blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (416, 416),
@@ -62,6 +64,7 @@ def get_person_centroild(image, net, ln):
                 # box followed by the boxes' width and height
                 box = detection[0:4] * np.array([W, H, W, H])
                 (centerX, centerY, width, height) = box.astype("int")
+                print("centerX:%s, centerY:%s, width:%s, height:%s" % (centerX, centerY, width, height))
 
                 # use the center (x, y)-coordinates to derive the top and
                 # and left corner of the bounding box
@@ -75,6 +78,7 @@ def get_person_centroild(image, net, ln):
                 classIDs.append(classID)
     # apply non-maxima suppression to suppress weak, overlapping bounding
     # boxes
+    print("Found Boxes: ", boxes)
     idxs = cv2.dnn.NMSBoxes(boxes, confidences, DEFAULT_CONFIDENCE,
         DEFAULT_THRESOLD)
     # ensure at least one detection exists
@@ -96,36 +100,57 @@ def get_person_centroild(image, net, ln):
         (w, h) = maxsize
         color = 0
         # draw a bounding box rectangle and label on the image
-        cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+        # cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
         text = "{}: {:.4f}".format("Person", 0)
-        cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
-            0.5, color, 2)
+        cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        return (x, y, w, h)
+    return None
 
-        return (x + w/2, y+h/2)
-    return (-1, -1)
+def getSerial():
+    return serial.Serial('/dev/tty.usbmodem1411', 9600)
 
+def center(ser):
+    angles = "%s %s\n" % (90, 90)
+    ser.write(angles.encode())
+
+import time
 if __name__ == "__main__":
+    ser = getSerial()
     (net, ln) = load_yolo()
-    ser = serial.Serial('/dev/tty.usbmodem1411', 9600)
+    
     while True:
         image = capture_image()
-        center = get_person_centroild(image, net, ln)
-        print(center)
-        MH = 800
-        MW = 1280
+        person_bb = get_biggest_person_bb(image, net, ln)
+        if person_bb:
+            (x, y, w, h) = person_bb
+            Bcx = x + w/2
+            Bcy = y + h/2
 
-        # 75 Diag
-        MAXA = 75
-        MD = math.sqrt(MH*MH + MW*MW)
-        hangle = (640-center[0])*75//MD
-        vangle = (400 - center[1])*75//MD
-        angles = "%s %s\n" % (hangle, vangle)
-        print("Angles: ", angles)
-        ser.write(angles.encode())
+            print("person_bb: ", person_bb)
+            MH = 800
+            MW = 1280
+
+            Cx = 1280/2
+            Cy = 800/2
+
+            deltax = Cx - Bcx
+            deltay = Cy - Bcy
+            alphax = deltax*70/1280
+            alphay = deltay*60/800
+
+            # 75 Diag
+            # MAXA = 75
+            # MD = math.sqrt(MH*MH + MW*MW)
+            hangle = int(90+alphax)
+            vangle = int(90-alphay)
+            angles = "%s %s\n" % (hangle, vangle)
+            print("Angles: ", angles)
+            ser.write(angles.encode())
+        time.sleep(.5)
 
         # show the output image
         # cv2.imshow("Image", image)
         # cv2.waitKey(0)
-        ans = input("Do you want to continue? Y/N")
-        if ans.lower() == "n":
-            break
+        # ans = input("Do you want to continue? Y/N")
+        # if ans.lower() == "n":
+        #     break
