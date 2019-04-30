@@ -100,7 +100,7 @@ def get_biggest_person_bb(image, net, ln):
         (w, h) = maxsize
         color = 0
         # draw a bounding box rectangle and label on the image
-        # cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+        cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
         text = "{}: {:.4f}".format("Person", 0)
         cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         return (x, y, w, h)
@@ -118,6 +118,10 @@ if __name__ == "__main__":
     ser = getSerial()
     (net, ln) = load_yolo()
     
+    not_found_times = 0
+
+    touching_top_times = 0
+    touching_bottom_times = 0
     while True:
         image = capture_image()
         person_bb = get_biggest_person_bb(image, net, ln)
@@ -127,30 +131,54 @@ if __name__ == "__main__":
             Bcy = y + h/2
 
             print("person_bb: ", person_bb)
-            MH = 800
             MW = 1280
+            MH = 800
+            
 
             Cx = 1280/2
             Cy = 800/2
 
             deltax = Cx - Bcx
             deltay = Cy - Bcy
-            alphax = deltax*70/1280
+            print("Distances from Center: X: Y: " , deltax, deltay)
+            alphax = deltax*60/1280
             alphay = deltay*60/800
 
             # 75 Diag
             # MAXA = 75
             # MD = math.sqrt(MH*MH + MW*MW)
-            hangle = int(90+alphax)
-            vangle = int(90-alphay)
+            print("Absolute Angle H, V" , alphax, alphay)
+            hangle = round(90+alphax)
+            vangle = round(90-alphay)
             angles = "%s %s\n" % (hangle, vangle)
-            print("Angles: ", angles)
-            ser.write(angles.encode())
-        time.sleep(.5)
+            print("Angles (before): ", angles)
 
+            if y < 60:
+                touching_top_times += 1
+            
+            if y > 400:
+                touching_top_times = 0
+
+            vangle -= 10*touching_top_times
+            # vangle += 10*touching_bottom_times
+
+            angles = "%s %s\n" % (hangle, vangle)
+            print("Angles (after): ", angles)
+            ser.write(angles.encode())
+        else:
+            if not_found_times > 5:
+                angles = "%s %s\n" % (90, 90)
+                print("Angles (after): ", angles)
+                not_found_times = 0
+                touching_top_times = 0
+            not_found_times += 1
+        
         # show the output image
-        # cv2.imshow("Image", image)
-        # cv2.waitKey(0)
+        cv2.imshow("Image", image)
+        cv2.waitKey(5)
+        # time.sleep(10)
+        
+        # cv2.destroyAllWindows()
         # ans = input("Do you want to continue? Y/N")
         # if ans.lower() == "n":
         #     break
