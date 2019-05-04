@@ -122,6 +122,7 @@ if __name__ == "__main__":
 
     touching_top_times = 0
     touching_bottom_times = 0
+    hangle = 90
     while True:
         image = capture_image()
         person_bb = get_biggest_person_bb(image, net, ln)
@@ -148,7 +149,7 @@ if __name__ == "__main__":
             # MAXA = 75
             # MD = math.sqrt(MH*MH + MW*MW)
             print("Absolute Angle H, V" , alphax, alphay)
-            hangle = round(90+alphax)
+            hangle += round(alphax)
             vangle = round(90-alphay)
             angles = "%s %s\n" % (hangle, vangle)
             print("Angles (before): ", angles)
